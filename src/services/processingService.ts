@@ -10,7 +10,8 @@ export class ProcessingService {
   static async processFiles(
     pptxTemplate: FileItem,
     excelFiles: FileItem[],
-    options: ProcessingOptions
+    options: ProcessingOptions,
+    onProgress?: () => void
   ): Promise<ProcessingResult[]> {
     try {
       // Call the main process to invoke the Python processing engine
@@ -18,6 +19,13 @@ export class ProcessingService {
         templatePath: pptxTemplate.path,
         excelPaths: excelFiles.map(file => file.path),
         outputDirectory: options.outputDirectory
+      });
+      
+      // For now, we'll simulate progress updates with each completed file
+      excelFiles.forEach(() => {
+        if (onProgress) {
+          onProgress();
+        }
       });
       
       if (Array.isArray(results)) {

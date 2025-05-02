@@ -10,9 +10,10 @@ interface ElectronFile extends File {
 interface FileDropZoneProps {
   onFilesAdded: (files: FileItem[]) => void;
   acceptedTypes: string[];
+  darkMode?: boolean;
 }
 
-export default function FileDropZone({ onFilesAdded, acceptedTypes }: FileDropZoneProps) {
+export default function FileDropZone({ onFilesAdded, acceptedTypes, darkMode = false }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,21 +67,54 @@ export default function FileDropZone({ onFilesAdded, acceptedTypes }: FileDropZo
     fileInputRef.current?.click();
   };
 
+  const getBorderColor = () => {
+    if (isDragging) {
+      return theme.colors.vibrantChartreuse;
+    }
+    return darkMode ? 'rgba(255, 255, 255, 0.2)' : theme.colors.midnightTeal;
+  };
+
+  const getBackgroundColor = () => {
+    if (isDragging) {
+      return darkMode 
+        ? 'rgba(156, 255, 0, 0.15)' 
+        : 'rgba(156, 255, 0, 0.1)';
+    }
+    return darkMode 
+      ? 'rgba(255, 255, 255, 0.05)' 
+      : theme.colors.lightGray;
+  };
+
+  const getTextColor = () => {
+    return darkMode 
+      ? theme.colors.vibrantChartreuse 
+      : theme.colors.midnightTeal;
+  };
+
+  const getSubTextColor = () => {
+    return darkMode 
+      ? 'rgba(255, 255, 255, 0.7)' 
+      : theme.colors.darkGray;
+  };
+
   return (
     <div
       onClick={handleClick}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      className="file-drop-zone"
       style={{
-        border: `2px dashed ${isDragging ? theme.colors.vibrantChartreuse : theme.colors.midnightTeal}`,
-        backgroundColor: isDragging ? 'rgba(156, 255, 0, 0.1)' : theme.colors.lightGray,
+        border: `2px dashed ${getBorderColor()}`,
+        backgroundColor: getBackgroundColor(),
         borderRadius: theme.borderRadius.md,
         padding: theme.spacing.xl,
         textAlign: 'center',
         cursor: 'pointer',
         transition: theme.transitions.default,
-        margin: theme.spacing.md
+        margin: 0,
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
       <input
@@ -91,11 +125,39 @@ export default function FileDropZone({ onFilesAdded, acceptedTypes }: FileDropZo
         accept={acceptedTypes.join(',')}
         style={{ display: 'none' }}
       />
-      <h3 style={{ color: theme.colors.midnightTeal, fontFamily: theme.fonts.heading }}>
-        Drop files here or click to select
+      
+      <div className="file-drop-icon" style={{ marginBottom: '16px', opacity: 0.9 }}>
+        {isDragging ? (
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 16L12 8" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 13L12 16L15 13" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M3 19H21" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        ) : (
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 16L4 17C4 18.6569 5.34315 20 7 20L17 20C18.6569 20 20 18.6569 20 17L20 16" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 4L12 16" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M8 8L12 4L16 8" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      
+      <h3 style={{ 
+        color: getTextColor(), 
+        fontFamily: theme.fonts.heading,
+        margin: '0 0 8px 0',
+        fontWeight: 600
+      }}>
+        {isDragging ? 'Drop files here' : 'Drag files here or click to select'}
       </h3>
-      <p style={{ color: theme.colors.darkGray, fontFamily: theme.fonts.body }}>
-        Accept {acceptedTypes.join(', ')} files
+      
+      <p style={{ 
+        color: getSubTextColor(), 
+        fontFamily: theme.fonts.body,
+        margin: 0,
+        fontSize: '0.9rem'
+      }}>
+        {`Accept ${acceptedTypes.join(', ')} files`}
       </p>
     </div>
   );

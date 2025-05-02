@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import FileDropZone from './components/FileDropZone'
 import FileList from './components/FileList'
@@ -10,9 +10,21 @@ import { ProcessingService } from './services/processingService'
 function App() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [darkMode, setDarkMode] = useState(true)
   const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>({
     outputDirectory: ''
   })
+
+  // Check system preference for dark mode
+  useEffect(() => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    setDarkMode(prefersDark)
+  }, [])
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+  }
 
   const handleFilesAdded = (newFiles: FileItem[]) => {
     // If a new PPTX is added, replace existing ones
@@ -54,6 +66,7 @@ function App() {
     
     // Start processing
     setIsProcessing(true)
+    setProgress(0)
     
     try {
       // Update status for all files
@@ -61,11 +74,21 @@ function App() {
         prevFiles.map(file => ({ ...file, status: 'processing' }))
       )
       
-      // Process files
+      // Process files with progress updates
+      const totalFiles = xlsxFiles.length
+      let completedFiles = 0
+      
+      const updateProgress = () => {
+        completedFiles++
+        const newProgress = Math.floor((completedFiles / totalFiles) * 100)
+        setProgress(newProgress)
+      }
+      
       const results = await ProcessingService.processFiles(
         pptxFile,
         xlsxFiles,
-        processingOptions
+        processingOptions,
+        updateProgress
       )
       
       // Update status based on results
@@ -89,6 +112,9 @@ function App() {
             : file
         })
       )
+      
+      // Set progress to 100% when done
+      setProgress(100)
     } catch (error) {
       console.error('Processing failed:', error)
       
@@ -105,59 +131,92 @@ function App() {
     }
   }
 
-  return (
-    <div className="app-container" style={{ fontFamily: theme.fonts.body }}>
-      <header style={{ 
-        textAlign: 'center', 
-        marginBottom: theme.spacing.xl,
-        color: theme.colors.midnightTeal
-      }}>
-        <h1 style={{ fontFamily: theme.fonts.heading }}>Weave</h1>
-        <p>PPTX-Excel Report Generator</p>
-      </header>
+  const appStyles = {
+    backgroundColor: darkMode ? '#121212' : theme.colors.white,
+    color: darkMode ? '#e0e0e0' : theme.colors.darkGray,
+    minHeight: '100vh',
+    transition: theme.transitions.default
+  }
 
-      <main>
-        <FileDropZone 
-          onFilesAdded={handleFilesAdded} 
-          acceptedTypes={['.pptx', '.xlsx']} 
-        />
-        
-        <FileList 
-          files={files} 
-          onRemoveFile={handleRemoveFile}
-        />
-        
-        <Settings 
-          options={processingOptions}
-          onChange={setProcessingOptions}
-        />
-        
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center',
-          marginTop: theme.spacing.xl 
-        }}>
-          <button
-            onClick={handleProcess}
-            disabled={isProcessing || files.length === 0 || !processingOptions.outputDirectory}
-            style={{
-              backgroundColor: theme.colors.vibrantChartreuse,
-              color: theme.colors.darkGray,
-              border: 'none',
-              borderRadius: theme.borderRadius.md,
-              padding: `${theme.spacing.md} ${theme.spacing.xl}`,
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              opacity: isProcessing || files.length === 0 || !processingOptions.outputDirectory ? 0.7 : 1,
-              transition: theme.transitions.default,
-              fontFamily: theme.fonts.heading
-            }}
+  return (
+    <div className="app-wrapper" style={appStyles}>
+      <div className="app-container">
+        <header className="app-header">
+          <div className="title-container">
+            <h1 style={{ 
+              fontFamily: theme.fonts.heading,
+              color: darkMode ? theme.colors.vibrantChartreuse : theme.colors.midnightTeal
+            }}>
+              Weave
+            </h1>
+            <p style={{ color: darkMode ? '#e0e0e0' : theme.colors.darkGray }}>
+              PPTX-Excel Report Generator
+            </p>
+          </div>
+          
+          <button 
+            onClick={toggleDarkMode}
+            className="theme-toggle-btn"
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isProcessing ? 'Processing...' : 'Generate Reports'}
+            {darkMode ? '☀️' : '🌙'}
           </button>
-        </div>
-      </main>
+        </header>
+
+        <main className="app-main">
+          <div className="app-grid">
+            <div className="file-section">
+              <FileDropZone 
+                onFilesAdded={handleFilesAdded} 
+                acceptedTypes={['.pptx', '.xlsx']}
+                darkMode={darkMode}
+              />
+              
+              <FileList 
+                files={files} 
+                onRemoveFile={handleRemoveFile}
+                darkMode={darkMode}
+              />
+            </div>
+            
+            <div className="config-section">
+              <Settings 
+                options={processingOptions}
+                onChange={setProcessingOptions}
+                darkMode={darkMode}
+              />
+              
+              {isProcessing && (
+                <div className="progress-container">
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ 
+                        width: `${progress}%`,
+                        backgroundColor: theme.colors.vibrantChartreuse
+                      }}
+                    />
+                  </div>
+                  <div className="progress-text">{progress}% Complete</div>
+                </div>
+              )}
+              
+              <button
+                onClick={handleProcess}
+                disabled={isProcessing || files.length === 0 || !processingOptions.outputDirectory}
+                className="process-btn"
+                style={{
+                  backgroundColor: darkMode ? theme.colors.vibrantChartreuse : theme.colors.midnightTeal,
+                  color: darkMode ? theme.colors.darkGray : theme.colors.white,
+                  opacity: isProcessing || files.length === 0 || !processingOptions.outputDirectory ? 0.6 : 1,
+                }}
+              >
+                {isProcessing ? 'Processing...' : 'Generate Reports'}
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
