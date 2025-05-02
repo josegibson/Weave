@@ -87,6 +87,7 @@ Weave data into insights.
 - Sans-serif headings (e.g., Montserrat) in teal.
 - Body text in dark gray for readability.
 - Buttons and highlights in chartreuse/amber.
+- Also allow for dark mode and light mode where dark mode is the default.
 
 
 ## 7. Roadmap & Milestones
