@@ -147,12 +147,16 @@ function setupIpcHandlers() {
         let stderrData = ''
         
         process.stdout.on('data', (data) => {
-          stdoutData += data.toString()
+          const text = data.toString()
+          win?.webContents.send('engine-log', { type: 'stdout', text })
+          stdoutData += text
         })
         
         process.stderr.on('data', (data) => {
-          stderrData += data.toString()
-          console.error(`Processing engine stderr: ${data.toString()}`)
+          const text = data.toString()
+          win?.webContents.send('engine-log', { type: 'stderr', text })
+          stderrData += text
+          console.error(`Processing engine stderr: ${text}`)
         })
         
         process.on('close', (code) => {
@@ -218,12 +222,16 @@ function setupIpcHandlers() {
         let stderrData = ''
         
         process.stdout.on('data', (data) => {
-          stdoutData += data.toString()
+          const text = data.toString()
+          win?.webContents.send('engine-log', { type: 'stdout', text })
+          stdoutData += text
         })
         
         process.stderr.on('data', (data) => {
-          stderrData += data.toString()
-          console.error(`Processing engine stderr: ${data.toString()}`)
+          const text = data.toString()
+          win?.webContents.send('engine-log', { type: 'stderr', text })
+          stderrData += text
+          console.error(`Processing engine stderr: ${text}`)
         })
         
         process.on('close', (code) => {
@@ -263,9 +271,11 @@ function setupIpcHandlers() {
     
     try {
       const { templatePath, excelPaths, outputDirectory } = args
+      console.log(`Batch processing started. Template: ${templatePath}, Excel files: ${excelPaths.join(', ')}`)
       
       // Validate the template path
       if (!fs.existsSync(templatePath)) {
+        console.error(`Template not found: ${templatePath}`)
         return { success: false, message: `Template file not found: ${templatePath}` }
       }
       
@@ -274,77 +284,82 @@ function setupIpcHandlers() {
         fs.mkdirSync(outputDirectory, { recursive: true })
       }
       
-      // Process each Excel file
-      const results = []
+      const results: Array<any> = []
       
       for (const excelPath of excelPaths) {
+        console.log(`Processing file: ${excelPath}`)
         if (!fs.existsSync(excelPath)) {
-          results.push({
-            excelPath,
-            success: false,
-            message: `Excel file not found: ${excelPath}`
-          })
+          console.error(`Excel file not found: ${excelPath}`)
+          results.push({ excelPath, success: false, message: `Excel file not found: ${excelPath}` })
           continue
         }
         
-        // Generate output path
         const excelFileName = path.basename(excelPath, path.extname(excelPath))
         const outputPath = path.join(outputDirectory, `${excelFileName}_processed.pptx`)
         
         try {
-          // Process the file
           const processResult = await new Promise<{status: string, error?: string, output_file?: string}>((resolve, reject) => {
-            const process = spawn(PROCESSING_ENGINE_PATH, ['process', templatePath, excelPath, outputPath])
-            
+            console.log(`Spawning processing engine:`, PROCESSING_ENGINE_PATH, ['process', templatePath, excelPath, outputPath])
+            const proc = spawn(PROCESSING_ENGINE_PATH, ['process', templatePath, excelPath, outputPath])
             let stdoutData = ''
             let stderrData = ''
             
-            process.stdout.on('data', (data) => {
-              stdoutData += data.toString()
+            proc.stdout.on('data', (data) => {
+              const text = data.toString()
+              win?.webContents.send('engine-log', { type: 'stdout', text })
+              stdoutData += text
             })
-            
-            process.stderr.on('data', (data) => {
-              stderrData += data.toString()
+            proc.stderr.on('data', (data) => {
+              const text = data.toString()
+              win?.webContents.send('engine-log', { type: 'stderr', text })
+              stderrData += text
             })
-            
-            process.on('close', (code) => {
+            proc.on('close', (code) => {
+              console.log(`Engine process exited with code ${code}`)
               if (code === 0) {
                 try {
                   const result = JSON.parse(stdoutData)
                   resolve(result)
                 } catch (err: any) {
-                  reject(new Error(`Failed to parse processing engine output: ${err.message}`))
+                  console.error('Error parsing engine output:', err)
+                  reject(new Error(`Failed to parse engine output: ${err.message}`))
                 }
               } else {
-                reject(new Error(`Processing engine exited with code ${code}: ${stderrData}`))
+                reject(new Error(`Engine exited with code ${code}. Stderr: ${stderrData}`))
               }
             })
-            
-            process.on('error', (err) => {
+            proc.on('error', (err) => {
+              console.error('Failed to start engine process:', err)
               reject(err)
             })
           })
-          
-          // Add the result
           results.push({
             excelPath,
             success: processResult.status === 'success',
             message: processResult.status === 'success' ? 'Successfully processed' : (processResult.error || 'Unknown error'),
-            outputFile: processResult.output_file
+            outputPath: processResult.output_file
           })
         } catch (error: any) {
+          console.error(`Error processing file ${excelPath}:`, error)
           results.push({
             excelPath,
             success: false,
-            message: `Error processing file: ${error.message || 'Unknown error'}`
+            message: `Error processing file: ${error.message}`
           })
         }
       }
       
+      console.log('Batch processing complete:', results)
       return results
     } catch (error: any) {
-      console.error('Error in batch processing:', error)
-      return { success: false, message: `Error: ${error.message || 'Unknown error'}` }
+      console.error('Error in batch processing handler:', error)
+      // Return an error result for each Excel file so the UI clears processing state
+      const { excelPaths } = args as { excelPaths: string[] }
+      return excelPaths.map(excelPath => ({
+        excelPath,
+        success: false,
+        message: error.message || 'Unknown error'
+      }))
     }
   })
 }

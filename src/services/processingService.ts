@@ -83,6 +83,11 @@ export class ProcessingService {
     options: ProcessingOptions,
     onProgress?: () => void
   ): Promise<ProcessingResult[]> {
+    console.log('ProcessingService: invoking process-files', { 
+      templatePath: pptxTemplate.path,
+      excelPaths: excelFiles.map(f => f.path),
+      outputDirectory: options.outputDirectory
+    });
     try {
       // Call the main process to invoke the processing engine for batch processing
       const results = await window.electron.ipcRenderer.invoke('process-files', {

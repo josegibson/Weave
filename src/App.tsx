@@ -191,24 +191,22 @@ function App() {
       )
       
       // Update status based on results
-      setFiles(prevFiles => 
+      setFiles(prevFiles =>
         prevFiles.map(file => {
-          if (file.type === 'xlsx') {
-            const result = results.find(r => 
-              r.outputPath?.includes(file.name.replace('.xlsx', '.pptx'))
-            )
-            
-            if (result) {
+          if (file.type === 'pptx') {
+            return { ...file, status: 'success' };
+          } else if (file.type === 'xlsx') {
+            const idx = xlsxFiles.findIndex(f => f.id === file.id);
+            if (idx !== -1) {
+              const result = results[idx];
               return {
                 ...file,
                 status: result.success ? 'success' : 'error',
-                errorMessage: !result.success ? result.message : undefined
-              }
+                errorMessage: result.success ? undefined : result.message
+              };
             }
           }
-          return file.type === 'pptx' 
-            ? { ...file, status: 'success' } 
-            : file
+          return file;
         })
       )
       
