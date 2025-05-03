@@ -1,99 +1,63 @@
-# Weave - PPTX-Excel Report Generator
+# Weave - PowerPoint Template Processor
 
-Weave is an Electron application that generates PowerPoint presentations from Excel data using a PowerPoint template.
+A modern app for processing PowerPoint templates with data from Excel files.
 
 ## Features
 
-- Drag and drop interface for PowerPoint template and Excel data files
-- Process multiple Excel files at once
-- Custom output directory selection
-- Real-time processing status updates
+- Replace placeholders in PowerPoint templates with data from Excel files
+- Support for text and image replacements
+- Placeholder format: `{SheetName:CellReference}` or `{SheetName:IMG}` for images
+- Clean, modern UI for easy template management
 
-## Requirements
+## Core Functionality
 
-- Node.js 14+
-- Python 3.6+
-- python-pptx and openpyxl libraries (installed via requirements.txt)
+The application implements the following functionality based on the Python implementation in `grv2_pptx.py`:
 
-## Installation
+1. **Template Analysis**: Detects placeholders in PowerPoint templates
+2. **Excel Data Extraction**: Extracts values from Excel cells
+3. **Placeholder Replacement**: Replaces placeholders with actual data
+4. **Image Handling**: Supports extracting images from Excel and inserting them into PowerPoint
 
-1. Clone the repository
-2. Install Node.js dependencies:
+## Technology Stack
 
-```bash
-npm install
-```
+- React + TypeScript for the UI
+- XLSX.js for Excel file processing
+- JSZip for PowerPoint manipulation
 
-3. Install Python dependencies:
+## Placeholder Format
 
-```bash
-pip install -r electron/python/requirements.txt
-```
+Placeholders follow this format: `{SheetName:Identifier}`
 
-## Development
+Where:
+- `SheetName`: The name of the Excel sheet containing the data
+- `Identifier`: Either a cell reference (e.g., `A1`) or `IMG` for images
 
-To start the application in development mode:
+Examples:
+- `{Sheet1:A1}` - Replace with value from Sheet1, cell A1
+- `{DATA:IMG}` - Replace with image from DATA sheet
 
-```bash
-npm run dev
-```
+## Getting Started
 
-## Building
+1. Install dependencies:
+   ```
+   npm install
+   ```
 
-To build the application:
-
-```bash
-npm run build
-```
-
-This will create distributable packages in the `dist` directory.
+2. Start the development server:
+   ```
+   npm run dev
+   ```
 
 ## Usage
 
-1. Launch the application
-2. Drag and drop your PowerPoint template (.pptx)
-3. Drag and drop your Excel data files (.xlsx)
-4. Set your output directory
-5. Click "Generate Reports"
-6. Find your generated presentations in the output directory
+1. Select a PowerPoint template file
+2. Upload an Excel data file
+3. Review detected placeholders
+4. Process the template to replace placeholders with data
 
-## How It Works
+## Output Settings Summary Order
 
-1. The application uses a PowerPoint template (.pptx) with placeholders
-2. Data from Excel files (.xlsx) is read and mapped to the placeholders
-3. For each Excel file, a new PowerPoint presentation is generated with the data
-
-## License
-
-MIT
-
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+The output settings are displayed in the following order:
+1. Template
+2. Placeholders
+3. Data Files 

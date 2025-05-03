@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef, DragEvent, ChangeEvent, RefObject } from 'react';
 import { theme } from '../styles/theme';
 import { FileItem } from '../types';
 
@@ -11,11 +11,15 @@ interface FileDropZoneProps {
   onFilesAdded: (files: FileItem[]) => void;
   acceptedTypes: string[];
   darkMode?: boolean;
+  fileInputRef?: RefObject<HTMLInputElement>;
 }
 
-export default function FileDropZone({ onFilesAdded, acceptedTypes, darkMode = false }: FileDropZoneProps) {
+export default function FileDropZone({ onFilesAdded, acceptedTypes, darkMode = false, fileInputRef }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const internalFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use provided ref or internal ref
+  const inputRef = fileInputRef || internalFileInputRef;
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -64,37 +68,29 @@ export default function FileDropZone({ onFilesAdded, acceptedTypes, darkMode = f
   };
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    inputRef.current?.click();
   };
 
   const getBorderColor = () => {
     if (isDragging) {
       return theme.colors.vibrantChartreuse;
     }
-    return darkMode ? 'rgba(255, 255, 255, 0.2)' : theme.colors.midnightTeal;
+    return 'rgba(255, 255, 255, 0.2)';
   };
 
   const getBackgroundColor = () => {
     if (isDragging) {
-      return darkMode 
-        ? 'rgba(156, 255, 0, 0.15)' 
-        : 'rgba(156, 255, 0, 0.1)';
+      return 'rgba(156, 255, 0, 0.15)';
     }
-    return darkMode 
-      ? 'rgba(255, 255, 255, 0.05)' 
-      : theme.colors.lightGray;
+    return 'rgba(255, 255, 255, 0.05)';
   };
 
   const getTextColor = () => {
-    return darkMode 
-      ? theme.colors.vibrantChartreuse 
-      : theme.colors.midnightTeal;
+    return theme.colors.vibrantChartreuse;
   };
 
   const getSubTextColor = () => {
-    return darkMode 
-      ? 'rgba(255, 255, 255, 0.7)' 
-      : theme.colors.darkGray;
+    return 'rgba(255, 255, 255, 0.7)';
   };
 
   return (
@@ -119,7 +115,7 @@ export default function FileDropZone({ onFilesAdded, acceptedTypes, darkMode = f
     >
       <input
         type="file"
-        ref={fileInputRef}
+        ref={inputRef}
         onChange={handleFileSelect}
         multiple
         accept={acceptedTypes.join(',')}
