@@ -59,41 +59,11 @@ function App() {
     setTemplateAnalysis(prev => ({ ...prev, loading: true }));
     
     try {
-      // This would be an actual analysis of the PPTX file to find patterns
-      // For now, we'll simulate it with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // This is where you would implement the actual pattern extraction
-      // For demonstration, we'll create mock data based on the Python script logic
-      const mockPatterns: TemplatePattern[] = [
-        { 
-          type: 'text', 
-          pattern: '{Sheet1:A1}', 
-          description: 'Cell reference from Sheet1, cell A1',
-          slide: 1
-        },
-        { 
-          type: 'text', 
-          pattern: '{Performance:B2}', 
-          description: 'Cell reference from Performance sheet, cell B2',
-          slide: 1
-        },
-        { 
-          type: 'image', 
-          pattern: '{Charts:IMG}', 
-          description: 'Image from Charts sheet',
-          slide: 2
-        },
-        { 
-          type: 'text', 
-          pattern: '{Summary:C5}', 
-          description: 'Cell reference from Summary sheet, cell C5',
-          slide: 3
-        }
-      ];
+      // Use the ProcessingService to analyze the template file
+      const patterns = await ProcessingService.analyzeTemplate(file);
       
       setTemplateAnalysis({
-        placeholders: mockPatterns,
+        placeholders: patterns,
         loading: false
       });
     } catch (error) {
