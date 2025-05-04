@@ -247,6 +247,8 @@ function App() {
     const stepIndex = stepOrder.indexOf(step)
     
     if (stepIndex < currentIndex) return 'completed'
+    // Special case: when on the complete step, mark it as completed too
+    if (step === 'complete' && currentStep === 'complete') return 'completed'
     if (stepIndex === currentIndex) return 'active'
     return 'upcoming'
   }
@@ -560,6 +562,16 @@ function App() {
                 />
                 
                 <div className="wizard-actions">
+                  <button
+                    onClick={handlePreviousStep}
+                    className="back-btn"
+                    style={{
+                      color: theme.colors.vibrantChartreuse,
+                    }}
+                  >
+                    Back
+                  </button>
+                  
                   <button
                     onClick={() => {
                       setFiles([])

@@ -1,11 +1,13 @@
 {
   "name": "weave",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Weave: Report automation tool",
+  "author": "Your Name <you@example.com>",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "tsc && vite build && electron-builder --config electron-builder.json5",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

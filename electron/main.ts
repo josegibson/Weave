@@ -1,11 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { spawn } from 'child_process'
 import fs from 'node:fs'
 
-const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -26,18 +24,30 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-// Path to the processing engine executable
-export const PROCESSING_ENGINE_PATH = path.join(process.env.APP_ROOT, 'electron', 'core', 'dist', 'processing_engine.exe')
+// Path to the processing engine executable: look under resources first, then fallback to dev build
+const packagedEnginePath = path.join(process.resourcesPath, 'processing_engine', 'processing_engine.exe')
+const devEnginePath = path.join(process.env.APP_ROOT, 'electron', 'core', 'dist', 'processing_engine.exe')
+export const PROCESSING_ENGINE_PATH = fs.existsSync(packagedEnginePath)
+  ? packagedEnginePath
+  : devEnginePath
 
 let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC, 'weave.svg'),
+    titleBarStyle: 'hiddenInset', // macOS - hides title bar but keeps controls
+    autoHideMenuBar: true, // Windows/Linux - hides menu bar but keeps it accessible via Alt key
+    frame: true, // Keep the native window frame with controls
+    show: false, // Don't show until we're ready
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
+
+  // Maximize and then show when ready
+  win.maximize()
+  win.show()
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -348,12 +358,11 @@ function setupIpcHandlers() {
           })
         }
       }
-      
+
       console.log('Batch processing complete:', results)
       return results
     } catch (error: any) {
       console.error('Error in batch processing handler:', error)
-      // Return an error result for each Excel file so the UI clears processing state
       const { excelPaths } = args as { excelPaths: string[] }
       return excelPaths.map(excelPath => ({
         excelPath,
