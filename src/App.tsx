@@ -13,7 +13,8 @@ function App() {
   const [progress, setProgress] = useState(0)
   const [darkMode, setDarkMode] = useState(true) // Always use dark mode
   const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>({
-    outputDirectory: ''
+    outputDirectory: '',
+    outputFormat: 'pptx'
   })
   const [currentStep, setCurrentStep] = useState<WizardStep>('template')
   const fileInputRef = useRef<HTMLInputElement>(null);

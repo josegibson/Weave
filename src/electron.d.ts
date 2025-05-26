@@ -40,12 +40,21 @@ interface FileSelectionResult {
   filePaths: string[];
 }
 
+// Server status response
+interface ServerStatusResult {
+  available: boolean;
+  message: string;
+}
+
 interface ElectronAPI {
   ipcRenderer: {
     on(channel: string, callback: (...args: any[]) => void): void;
     off(channel: string, callback: (...args: any[]) => void): void;
     send(channel: string, ...args: any[]): void;
     invoke(channel: string, ...args: any[]): Promise<any>;
+    
+    // Server status check
+    invoke(channel: 'check-server'): Promise<ServerStatusResult>;
     
     // File selection
     invoke(channel: 'select-pptx-file', ...args: any[]): Promise<FileSelectionResult>;
@@ -59,14 +68,16 @@ interface ElectronAPI {
     invoke(channel: 'process-template', args: { 
       templatePath: string; 
       dataPath: string; 
-      outputPath: string 
+      outputPath: string; 
+      outputFormat: 'pptx' | 'pdf'; 
     }): Promise<ProcessTemplateResult>;
     
     // Batch processing
     invoke(channel: 'process-files', args: { 
       templatePath: string; 
       excelPaths: string[]; 
-      outputDirectory: string 
+      outputDirectory: string; 
+      outputFormat: 'pptx' | 'pdf'; 
     }): Promise<ProcessTemplateResult[]>;
   }
 }

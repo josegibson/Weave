@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  conversion-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ppt-conversion-server
+    ports:
+      - "5000:5000"
+    volumes:
+      # These volumes allow persistence of converted files and uploads
+      - ./converted:/app/converted
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    environment:
+      - PORT=5000
+      - FLASK_ENV=production
+      # Add any other environment variables here 

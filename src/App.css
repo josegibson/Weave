@@ -630,3 +630,73 @@
   font-size: 0.75rem;
   margin-left: 6px;
 }
+
+/* Radio button style for format options */
+.format-selector {
+  margin-top: 20px;
+}
+
+.format-label {
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+}
+
+.format-options {
+  display: flex;
+  gap: 20px;
+}
+
+.format-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.format-option:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.format-radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.format-radio-custom {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.format-radio:checked + .format-radio-custom {
+  border-color: #9cff00; /* vibrant chartreuse */
+}
+
+.format-radio:checked + .format-radio-custom::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #9cff00; /* vibrant chartreuse */
+}
+
+.format-label-text {
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}

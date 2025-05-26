@@ -49,14 +49,17 @@ export class ProcessingService {
   static async processTemplate(
     pptxTemplate: FileItem,
     excelFile: FileItem,
-    outputPath: string
+    outputPath: string,
+    // Specify output format: pptx or pdf
+    outputFormat: 'pptx' | 'pdf' = 'pptx'
   ): Promise<ProcessingResult> {
     try {
       // Call the main process to invoke the processing engine in process mode
       const result = await window.electron.ipcRenderer.invoke('process-template', {
         templatePath: pptxTemplate.path,
         dataPath: excelFile.path,
-        outputPath: outputPath
+        outputPath: outputPath,
+        outputFormat: outputFormat
       });
       
       if (!result.success) {
@@ -86,14 +89,16 @@ export class ProcessingService {
     console.log('ProcessingService: invoking process-files', { 
       templatePath: pptxTemplate.path,
       excelPaths: excelFiles.map(f => f.path),
-      outputDirectory: options.outputDirectory
+      outputDirectory: options.outputDirectory,
+      outputFormat: options.outputFormat
     });
     try {
       // Call the main process to invoke the processing engine for batch processing
       const results = await window.electron.ipcRenderer.invoke('process-files', {
         templatePath: pptxTemplate.path,
         excelPaths: excelFiles.map(file => file.path),
-        outputDirectory: options.outputDirectory
+        outputDirectory: options.outputDirectory,
+        outputFormat: options.outputFormat
       });
       
       // Call the progress callback for each file (this might happen before actual completion in the real implementation)

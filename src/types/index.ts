@@ -15,6 +15,7 @@ export interface ProcessingResult {
 
 export interface ProcessingOptions {
   outputDirectory: string;
+  outputFormat: 'pptx' | 'pdf';
 }
 
 export type WizardStep = 'template' | 'data' | 'output' | 'complete'; 

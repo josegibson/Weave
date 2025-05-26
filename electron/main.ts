@@ -3,8 +3,13 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { spawn } from 'child_process'
 import fs from 'node:fs'
+import fetch from 'node-fetch'
+import FormData from 'form-data'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Server configuration
+const SERVER_URL = 'http://172.18.0.2:5000'
 
 // The built directory structure
 //
@@ -45,9 +50,14 @@ function createWindow() {
     },
   })
 
-  // Maximize and then show when ready
-  win.maximize()
-  win.show()
+  // When window is ready to show
+  win.once('ready-to-show', () => {
+    win?.show()
+    // Check server health after a short delay to allow the UI to load
+    setTimeout(() => {
+      checkServerHealth()
+    }, 1000)
+  })
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -96,7 +106,35 @@ app.whenReady().then(() => {
   setupIpcHandlers()
 })
 
+// Check server availability
+async function checkServerHealth() {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/health`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Server health check:', data);
+      win?.webContents.send('server-status', { available: true, message: 'Server is available' });
+      return true;
+    } else {
+      console.error('Server returned non-OK response:', response.status);
+      win?.webContents.send('server-status', { available: false, message: `Server error: ${response.status}` });
+      return false;
+    }
+  } catch (error) {
+    console.error('Failed to connect to server:', error);
+    win?.webContents.send('server-status', { available: false, message: 'Cannot connect to server' });
+    return false;
+  }
+}
+
 function setupIpcHandlers() {
+  console.log('Setting up IPC handlers...')
+  
+  // Check server health
+  ipcMain.handle('check-server', async () => {
+    return await checkServerHealth();
+  });
+  
   // Handle selecting files
   ipcMain.handle('select-pptx-file', async () => {
     if (!win) return { canceled: true, filePaths: [] }
@@ -149,51 +187,37 @@ function setupIpcHandlers() {
       
       console.log(`Analyzing template: ${templatePath}`)
       
-      // Run the processing engine in analyse mode
-      const process = spawn(PROCESSING_ENGINE_PATH, ['analyse', templatePath])
+      // Create form data with the template file
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(templatePath));
       
-      return new Promise((resolve, reject) => {
-        let stdoutData = ''
-        let stderrData = ''
-        
-        process.stdout.on('data', (data) => {
-          const text = data.toString()
-          win?.webContents.send('engine-log', { type: 'stdout', text })
-          stdoutData += text
-        })
-        
-        process.stderr.on('data', (data) => {
-          const text = data.toString()
-          win?.webContents.send('engine-log', { type: 'stderr', text })
-          stderrData += text
-          console.error(`Processing engine stderr: ${text}`)
-        })
-        
-        process.on('close', (code) => {
-          console.log(`Processing engine exited with code ${code}`)
-          
-          if (code === 0) {
-            try {
-              const result = JSON.parse(stdoutData)
-              resolve({ success: true, ...result })
-            } catch (err: any) {
-              console.error('Failed to parse processing engine output:', err)
-              reject({ success: false, message: `Failed to parse processing engine output: ${err.message}` })
-            }
-          } else {
-            reject({ 
-              success: false, 
-              message: `Processing engine exited with code ${code}`,
-              stderr: stderrData
-            })
-          }
-        })
-        
-        process.on('error', (err) => {
-          console.error('Failed to spawn processing engine:', err)
-          reject({ success: false, message: `Failed to spawn processing engine: ${err.message}` })
-        })
-      })
+      // Send the file to the server for analysis
+      const response = await fetch(`${SERVER_URL}/api/analyse-template`, {
+        method: 'POST',
+        body: formData,
+        headers: formData.getHeaders()
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json() as { error: string };
+        throw new Error(errorData.error || 'Server error during template analysis');
+      }
+      
+      const result = await response.json() as {
+        slides: any[];
+        sheets_required: string[];
+        cell_references: any[];
+        image_references: any[];
+      };
+      
+      return { 
+        success: true, 
+        slides: result.slides,
+        sheets_required: result.sheets_required,
+        cell_references: result.cell_references,
+        image_references: result.image_references
+      };
+      
     } catch (error: any) {
       console.error('Error analyzing template:', error)
       return { success: false, message: `Error: ${error.message || 'Unknown error'}` }
@@ -205,7 +229,7 @@ function setupIpcHandlers() {
     if (!win) return { success: false, message: 'No window available' }
     
     try {
-      const { templatePath, dataPath, outputPath } = args
+      const { templatePath, dataPath, outputPath, outputFormat } = args
       
       // Validate inputs
       if (!fs.existsSync(templatePath)) {
@@ -222,53 +246,52 @@ function setupIpcHandlers() {
         fs.mkdirSync(outputDir, { recursive: true })
       }
       
-      console.log(`Processing template: ${templatePath} with data: ${dataPath}`)
+      console.log(`Processing template: ${templatePath} with data: ${dataPath}, format: ${outputFormat}`)
       
-      // Run the processing engine in process mode
-      const process = spawn(PROCESSING_ENGINE_PATH, ['process', templatePath, dataPath, outputPath])
+      // Create form data with both template and data files
+      const formData = new FormData();
+      formData.append('template', fs.createReadStream(templatePath));
+      formData.append('data', fs.createReadStream(dataPath));
+      formData.append('format', outputFormat);
       
-      return new Promise((resolve, reject) => {
-        let stdoutData = ''
-        let stderrData = ''
+      try {
+        // Send the files to the server for processing
+        const response = await fetch(`${SERVER_URL}/api/process`, {
+          method: 'POST',
+          body: formData,
+          headers: formData.getHeaders()
+        });
         
-        process.stdout.on('data', (data) => {
-          const text = data.toString()
-          win?.webContents.send('engine-log', { type: 'stdout', text })
-          stdoutData += text
-        })
+        if (!response.ok) {
+          const errorData = await response.json() as { error: string };
+          throw new Error(errorData.error || 'Server error during processing');
+        }
         
-        process.stderr.on('data', (data) => {
-          const text = data.toString()
-          win?.webContents.send('engine-log', { type: 'stderr', text })
-          stderrData += text
-          console.error(`Processing engine stderr: ${text}`)
-        })
+        const result = await response.json() as { output_filename: string };
         
-        process.on('close', (code) => {
-          console.log(`Processing engine exited with code ${code}`)
-          
-          if (code === 0) {
-            try {
-              const result = JSON.parse(stdoutData)
-              resolve({ success: true, ...result })
-            } catch (err: any) {
-              console.error('Failed to parse processing engine output:', err)
-              reject({ success: false, message: `Failed to parse processing engine output: ${err.message}` })
-            }
-          } else {
-            reject({ 
-              success: false, 
-              message: `Processing engine exited with code ${code}`,
-              stderr: stderrData
-            })
-          }
-        })
+        // Download the processed file
+        const downloadResponse = await fetch(`${SERVER_URL}/api/download/${result.output_filename}`);
         
-        process.on('error', (err) => {
-          console.error('Failed to spawn processing engine:', err)
-          reject({ success: false, message: `Failed to spawn processing engine: ${err.message}` })
-        })
-      })
+        if (!downloadResponse.ok) {
+          throw new Error('Failed to download processed file');
+        }
+        
+        // Save the downloaded file to the output path
+        const fileBuffer = await downloadResponse.buffer();
+        fs.writeFileSync(outputPath, fileBuffer);
+        
+        return { 
+          success: true, 
+          message: 'Processing completed successfully',
+          output_file: outputPath
+        };
+      } catch (error: any) {
+        console.error('Server request failed:', error);
+        return { 
+          success: false, 
+          message: `Server request failed: ${error.message}`
+        };
+      }
     } catch (error: any) {
       console.error('Error processing template:', error)
       return { success: false, message: `Error: ${error.message || 'Unknown error'}` }
@@ -280,7 +303,7 @@ function setupIpcHandlers() {
     if (!win) return { success: false, message: 'No window available' }
     
     try {
-      const { templatePath, excelPaths, outputDirectory } = args
+      const { templatePath, excelPaths, outputDirectory, outputFormat } = args
       console.log(`Batch processing started. Template: ${templatePath}, Excel files: ${excelPaths.join(', ')}`)
       
       // Validate the template path
@@ -305,50 +328,46 @@ function setupIpcHandlers() {
         }
         
         const excelFileName = path.basename(excelPath, path.extname(excelPath))
-        const outputPath = path.join(outputDirectory, `${excelFileName}_processed.pptx`)
+        const outputPath = path.join(outputDirectory, `${excelFileName}_processed.${outputFormat}`)
         
         try {
-          const processResult = await new Promise<{status: string, error?: string, output_file?: string}>((resolve, reject) => {
-            console.log(`Spawning processing engine:`, PROCESSING_ENGINE_PATH, ['process', templatePath, excelPath, outputPath])
-            const proc = spawn(PROCESSING_ENGINE_PATH, ['process', templatePath, excelPath, outputPath])
-            let stdoutData = ''
-            let stderrData = ''
-            
-            proc.stdout.on('data', (data) => {
-              const text = data.toString()
-              win?.webContents.send('engine-log', { type: 'stdout', text })
-              stdoutData += text
-            })
-            proc.stderr.on('data', (data) => {
-              const text = data.toString()
-              win?.webContents.send('engine-log', { type: 'stderr', text })
-              stderrData += text
-            })
-            proc.on('close', (code) => {
-              console.log(`Engine process exited with code ${code}`)
-              if (code === 0) {
-                try {
-                  const result = JSON.parse(stdoutData)
-                  resolve(result)
-                } catch (err: any) {
-                  console.error('Error parsing engine output:', err)
-                  reject(new Error(`Failed to parse engine output: ${err.message}`))
-                }
-              } else {
-                reject(new Error(`Engine exited with code ${code}. Stderr: ${stderrData}`))
-              }
-            })
-            proc.on('error', (err) => {
-              console.error('Failed to start engine process:', err)
-              reject(err)
-            })
-          })
+          // Create form data with the template and data files
+          const formData = new FormData();
+          formData.append('template', fs.createReadStream(templatePath));
+          formData.append('data', fs.createReadStream(excelPath));
+          formData.append('format', outputFormat);
+          
+          // Send the files to the server for processing
+          const response = await fetch(`${SERVER_URL}/api/process`, {
+            method: 'POST',
+            body: formData,
+            headers: formData.getHeaders()
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json() as { error: string };
+            throw new Error(errorData.error || 'Server error during processing');
+          }
+          
+          const result = await response.json() as { output_filename: string };
+          
+          // Download the processed file
+          const downloadResponse = await fetch(`${SERVER_URL}/api/download/${result.output_filename}`);
+          
+          if (!downloadResponse.ok) {
+            throw new Error('Failed to download processed file');
+          }
+          
+          // Save the downloaded file to the output path
+          const fileBuffer = await downloadResponse.buffer();
+          fs.writeFileSync(outputPath, fileBuffer);
+          
           results.push({
             excelPath,
-            success: processResult.status === 'success',
-            message: processResult.status === 'success' ? 'Successfully processed' : (processResult.error || 'Unknown error'),
-            outputPath: processResult.output_file
-          })
+            success: true,
+            message: 'Successfully processed',
+            outputPath: outputPath
+          });
         } catch (error: any) {
           console.error(`Error processing file ${excelPath}:`, error)
           results.push({

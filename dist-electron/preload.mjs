@@ -1,1 +1,18 @@
-"use strict";const n=require("electron");n.contextBridge.exposeInMainWorld("electron",{ipcRenderer:{on(e,r){return n.ipcRenderer.on(e,(t,...o)=>r(...o))},off(e,r){return n.ipcRenderer.off(e,r)},send(e,...r){return n.ipcRenderer.send(e,...r)},invoke(e,...r){return n.ipcRenderer.invoke(e,...r)}}});
+"use strict";
+const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("electron", {
+  ipcRenderer: {
+    on(channel, callback) {
+      return electron.ipcRenderer.on(channel, (event, ...args) => callback(...args));
+    },
+    off(channel, callback) {
+      return electron.ipcRenderer.off(channel, callback);
+    },
+    send(channel, ...args) {
+      return electron.ipcRenderer.send(channel, ...args);
+    },
+    invoke(channel, ...args) {
+      return electron.ipcRenderer.invoke(channel, ...args);
+    }
+  }
+});

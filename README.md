@@ -61,3 +61,9 @@ The output settings are displayed in the following order:
 1. Template
 2. Placeholders
 3. Data Files 
+
+
+
+
+npm run prebuild -  for python to .exe building
+npm run build - will do prebuild and build the standalone application installer. maybe change the version number in package.json.

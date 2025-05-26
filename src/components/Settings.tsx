@@ -61,6 +61,35 @@ export default function Settings({ options, onChange, darkMode = false, isExpand
           </div>
         )}
       </div>
+      <div className="format-selector">
+        <div className="format-label">Output Format</div>
+        <div className="format-options">
+          <label className="format-option">
+            <input
+              type="radio"
+              name="outputFormat"
+              value="pptx"
+              checked={options.outputFormat === 'pptx'}
+              onChange={() => onChange({ ...options, outputFormat: 'pptx' })}
+              className="format-radio"
+            />
+            <span className="format-radio-custom"></span>
+            <span className="format-label-text">PPTX</span>
+          </label>
+          <label className="format-option">
+            <input
+              type="radio"
+              name="outputFormat"
+              value="pdf"
+              checked={options.outputFormat === 'pdf'}
+              onChange={() => onChange({ ...options, outputFormat: 'pdf' })}
+              className="format-radio"
+            />
+            <span className="format-radio-custom"></span>
+            <span className="format-label-text">PDF</span>
+          </label>
+        </div>
+      </div>
     </div>
   );
 } 
