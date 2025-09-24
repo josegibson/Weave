@@ -9,7 +9,7 @@ import FormData from 'form-data'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Server configuration
-const SERVER_URL = 'http://172.18.0.2:5000'
+const SERVER_URL = 'http://localhost:5000'
 
 // The built directory structure
 //

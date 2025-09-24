@@ -273,6 +273,18 @@ def convert_file():
 def download_file(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
+# Add this route to serve static files from the root folder
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_static(path):
+    root_dir = os.path.dirname(os.path.abspath(__file__))  # Get server directory
+    project_root = os.path.dirname(root_dir)  # Go up one level to the project root
+    
+    if path != "" and os.path.exists(os.path.join(project_root, path)):
+        return send_from_directory(project_root, path)
+    else:
+        return send_from_directory(project_root, 'index.html')
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
