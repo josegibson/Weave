@@ -25,3 +25,18 @@ dist-ssr
 *.sw?
 
 release
+
+# Python ignores
+**/__pycache__/
+*.pyc
+core_env/
+electron/core/build/
+server/build/
+**/*.spec
+server/uploads/
+server/converted/
+
+# Project specific data files
+*.docx
+*.xlsx
+*.pptx
