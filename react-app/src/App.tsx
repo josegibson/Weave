@@ -588,7 +588,7 @@ function App() {
                       color: theme.colors.darkGray,
                     }}
                   >
-                    Start New Batch
+                    Start New Conversion
                   </button>
                 </div>
               </div>

@@ -48,7 +48,7 @@ interface ServerStatusResult {
 
 interface ElectronAPI {
   ipcRenderer: {
-    on(channel: string, callback: (...args: any[]) => void): void;
+    on(channel: string, listener: (event: any, ...args: any[]) => void): (() => void) | void;
     off(channel: string, callback: (...args: any[]) => void): void;
     send(channel: string, ...args: any[]): void;
     invoke(channel: string, ...args: any[]): Promise<any>;

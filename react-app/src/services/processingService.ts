@@ -11,6 +11,7 @@ export class ProcessingService {
     pptxTemplate: FileItem
   ): Promise<TemplatePattern[]> {
     try {
+      console.log('--- Invoking analyse-template via IPC ---');
       // Call the main process to invoke the processing engine in analyse mode
       const result = await window.electron.ipcRenderer.invoke('analyse-template', {
         templatePath: pptxTemplate.path

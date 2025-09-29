@@ -1,19 +1,30 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-// --------- Expose some API to the Renderer process ---------
+console.log('--- Preload script loaded ---');
+
+const validChannels = [
+  'main-process-message',
+  'server-status'
+];
+
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    on(channel: string, callback: (...args: any[]) => void) {
-      return ipcRenderer.on(channel, (event, ...args) => callback(...args));
-    },
-    off(channel: string, callback: (...args: any[]) => void) {
-      return ipcRenderer.off(channel, callback);
-    },
-    send(channel: string, ...args: any[]) {
-      return ipcRenderer.send(channel, ...args);
-    },
-    invoke(channel: string, ...args: any[]) {
+    invoke: (channel: string, ...args: any[]) => {
       return ipcRenderer.invoke(channel, ...args);
-    }
+    },
+    on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => {
+      if (validChannels.includes(channel)) {
+        // Deliberately strip event as it includes `sender`
+        const subscription = (event: IpcRendererEvent, ...args: any[]) => listener(event, ...args);
+        ipcRenderer.on(channel, subscription);
+
+        return () => {
+          ipcRenderer.removeListener(channel, subscription);
+        };
+      }
+    },
+    off: (channel: string, listener: (...args: any[]) => void) => {
+      ipcRenderer.removeListener(channel, listener);
+    },
   },
-})
+});

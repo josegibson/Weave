@@ -9,7 +9,7 @@ import FormData from 'form-data'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Server configuration
-const SERVER_URL = 'http://localhost:5000'
+const SERVER_URL = process.env.WEAVE_SERVER_URL || 'http://localhost:5000'
 
 // The built directory structure
 //
@@ -29,12 +29,7 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'react-app/public') : RENDERER_DIST
 
-// Path to the processing engine executable: look under resources first, then fallback to dev build
-const packagedEnginePath = path.join(process.resourcesPath, 'processing_engine', 'processing_engine.exe')
-const devEnginePath = path.join(process.env.APP_ROOT, 'electron', 'core', 'dist', 'processing_engine.exe')
-export const PROCESSING_ENGINE_PATH = fs.existsSync(packagedEnginePath)
-  ? packagedEnginePath
-  : devEnginePath
+
 
 let win: BrowserWindow | null
 
@@ -93,14 +88,7 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   createWindow()
   
-  // Check if the processing engine executable exists
-  if (!fs.existsSync(PROCESSING_ENGINE_PATH)) {
-    console.error(`Processing engine executable not found at: ${PROCESSING_ENGINE_PATH}`)
-    dialog.showErrorBox(
-      'Processing Engine Error',
-      `The processing engine executable was not found. The application may not function correctly.`
-    )
-  }
+  
   
   // Setup IPC handlers
   setupIpcHandlers()
@@ -175,6 +163,7 @@ function setupIpcHandlers() {
 
   // Analyze PowerPoint template
   ipcMain.handle('analyse-template', async (event, args) => {
+    console.log('--- Received analyse-template IPC call ---');
     if (!win) return { success: false, message: 'No window available' }
     
     const { templatePath } = args
@@ -191,32 +180,36 @@ function setupIpcHandlers() {
       const formData = new FormData();
       formData.append('file', fs.createReadStream(templatePath));
       
-      // Send the file to the server for analysis
-      const response = await fetch(`${SERVER_URL}/api/analyse-template`, {
-        method: 'POST',
-        body: formData,
-        headers: formData.getHeaders()
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json() as { error: string };
-        throw new Error(errorData.error || 'Server error during template analysis');
+      try {
+        // Send the file to the server for analysis
+        const response = await fetch(`${SERVER_URL}/api/analyse-template`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json() as { error: string };
+          throw new Error(errorData.error || 'Server error during template analysis');
+        }
+
+        const result = await response.json() as {
+          slides: any[];
+          sheets_required: string[];
+          cell_references: any[];
+          image_references: any[];
+        };
+
+        return {
+          success: true,
+          slides: result.slides,
+          sheets_required: result.sheets_required,
+          cell_references: result.cell_references,
+          image_references: result.image_references
+        };
+      } catch (fetchError: any) {
+        console.error('Fetch Error during template analysis:', fetchError.message);
+        throw new Error(`Network request failed: ${fetchError.message}`);
       }
-      
-      const result = await response.json() as {
-        slides: any[];
-        sheets_required: string[];
-        cell_references: any[];
-        image_references: any[];
-      };
-      
-      return { 
-        success: true, 
-        slides: result.slides,
-        sheets_required: result.sheets_required,
-        cell_references: result.cell_references,
-        image_references: result.image_references
-      };
       
     } catch (error: any) {
       console.error('Error analyzing template:', error)
@@ -258,8 +251,7 @@ function setupIpcHandlers() {
         // Send the files to the server for processing
         const response = await fetch(`${SERVER_URL}/api/process`, {
           method: 'POST',
-          body: formData,
-          headers: formData.getHeaders()
+          body: formData
         });
         
         if (!response.ok) {
@@ -277,8 +269,8 @@ function setupIpcHandlers() {
         }
         
         // Save the downloaded file to the output path
-        const fileBuffer = await downloadResponse.buffer();
-        fs.writeFileSync(outputPath, fileBuffer);
+        const arrayBuffer = await downloadResponse.arrayBuffer();
+        fs.writeFileSync(outputPath, Buffer.from(arrayBuffer));
         
         return { 
           success: true, 
@@ -340,9 +332,7 @@ function setupIpcHandlers() {
           // Send the files to the server for processing
           const response = await fetch(`${SERVER_URL}/api/process`, {
             method: 'POST',
-            body: formData,
-            headers: formData.getHeaders()
-          });
+            body: formData          });
           
           if (!response.ok) {
             const errorData = await response.json() as { error: string };
@@ -359,8 +349,8 @@ function setupIpcHandlers() {
           }
           
           // Save the downloaded file to the output path
-          const fileBuffer = await downloadResponse.buffer();
-          fs.writeFileSync(outputPath, fileBuffer);
+          const arrayBuffer = await downloadResponse.arrayBuffer();
+          fs.writeFileSync(outputPath, Buffer.from(arrayBuffer));
           
           results.push({
             excelPath,

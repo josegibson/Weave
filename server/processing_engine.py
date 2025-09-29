@@ -176,7 +176,8 @@ def process_shapes(shapes, workbook, slide):
 def analyze_template(pptx_path):
     """Analyze a PowerPoint template and extract all placeholders."""
     try:
-        presentation = Presentation(pptx_path)
+        with open(pptx_path, "rb") as f:
+            presentation = Presentation(f)
         log_info(f"Analyzing template: {pptx_path}")
     except Exception as e:
         log_warning(f"Failed to load PowerPoint file: {e}")
@@ -281,7 +282,8 @@ def process_presentation(pptx_path, excel_path, output_path, output_format):
     # Removed stub; PDF export will be handled after shape processing
     log_info(f"Loading Excel file: {excel_path}")
     try:
-        workbook = openpyxl.load_workbook(excel_path, data_only=True)
+        with open(excel_path, "rb") as f:
+            workbook = openpyxl.load_workbook(f, data_only=True)
         log_info(f"Loaded Excel. Sheets: {workbook.sheetnames}")
     except Exception as e:
         log_warning(f"Failed to load Excel file: {e}")
@@ -289,7 +291,8 @@ def process_presentation(pptx_path, excel_path, output_path, output_format):
 
     log_info(f"Loading PowerPoint file: {pptx_path}")
     try:
-        presentation = Presentation(pptx_path)
+        with open(pptx_path, "rb") as f:
+            presentation = Presentation(f)
         log_info("PowerPoint file loaded")
     except Exception as e:
         log_warning(f"Failed to load PowerPoint file: {e}")
@@ -299,59 +302,61 @@ def process_presentation(pptx_path, excel_path, output_path, output_format):
         log_info(f"Processing slide {slide_index}")
         process_shapes(slide.shapes, workbook, slide)
 
-    # Branch based on desired output format
-    if output_format == 'pptx':
-        log_info(f"Saving updated presentation to: {output_path}")
-        try:
-            presentation.save(output_path)
-            log_info("Presentation saved successfully")
-            return {"status": "success", "output_file": output_path}
-        except Exception as e:
-            log_warning(f"Failed to save PPTX output file: {e}")
-            return {"error": f"Failed to save PPTX file: {str(e)}"}
+        # Branch based on desired output format
+        if output_format == 'pptx':
+            log_info(f"Saving updated presentation to: {output_path}")
+            try:
+                presentation.save(output_path)
+                log_info("Presentation saved successfully")
+                return {"status": "success", "output_file": output_path}
+            except Exception as e:
+                log_warning(f"Failed to save PPTX output file: {e}")
+                return {"error": f"Failed to save PPTX file: {str(e)}"}
 
-    elif output_format == 'pdf':
-        # Export to PDF via LibreOffice (soffice) headless
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pptx')
-        tmp_path = tmp_file.name
-        tmp_file.close()
-        presentation.save(tmp_path)
-        log_info(f"Temporary PPTX saved to: {tmp_path}")
-        out_dir = os.path.dirname(output_path) or os.getcwd()
-        # Locate LibreOffice command
-        soffice_cmd = shutil.which("soffice") or shutil.which("soffice.exe")
-        if not soffice_cmd:
-            log_warning("LibreOffice 'soffice' executable not found in PATH.")
-            # Clean up temp file
-            os.unlink(tmp_path)
-            return {"error": "LibreOffice 'soffice' not found in PATH"}
-        generated_pdf = None
-        try:
-            subprocess.run(
-                [soffice_cmd, "--headless", "--convert-to", "pdf:impress_pdf_Export", tmp_path, "--outdir", out_dir],
-                check=True,
-            )
-            generated_pdf = os.path.splitext(tmp_path)[0] + ".pdf"
-            if not os.path.exists(generated_pdf):
-                raise FileNotFoundError(f"Expected PDF not found: {generated_pdf}")
-            os.replace(generated_pdf, output_path)
-            log_info(f"Converted PDF saved to: {output_path}")
-            return {"status": "success", "output_file": output_path}
-        except Exception as e:
-            log_warning(f"PDF conversion failed: {e}")
-            return {"error": f"PDF conversion failed: {str(e)}"}
-        finally:
-            if os.path.exists(tmp_path):
+        elif output_format == 'pdf':
+            # ... (rest of the PDF conversion logic remains the same)
+            # Export to PDF via LibreOffice (soffice) headless
+            tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pptx')
+            tmp_path = tmp_file.name
+            tmp_file.close()
+            presentation.save(tmp_path)
+            log_info(f"Temporary PPTX saved to: {tmp_path}")
+            out_dir = os.path.dirname(output_path) or os.getcwd()
+            # Locate LibreOffice command
+            soffice_cmd = shutil.which("soffice") or shutil.which("soffice.exe")
+            if not soffice_cmd:
+                log_warning("LibreOffice 'soffice' executable not found in PATH.")
+                # Clean up temp file
                 os.unlink(tmp_path)
-            if generated_pdf and os.path.exists(generated_pdf):
-                try:
-                    os.unlink(generated_pdf)
-                except Exception:
-                    pass
+                return {"error": "LibreOffice 'soffice' not found in PATH"}
+            generated_pdf = None
+            try:
+                subprocess.run(
+                    [soffice_cmd, "--headless", "--convert-to", "pdf:impress_pdf_Export", tmp_path, "--outdir", out_dir],
+                    check=True,
+                )
+                generated_pdf = os.path.splitext(tmp_path)[0] + ".pdf"
+                if not os.path.exists(generated_pdf):
+                    raise FileNotFoundError(f"Expected PDF not found: {generated_pdf}")
+                os.replace(generated_pdf, output_path)
+                log_info(f"Converted PDF saved to: {output_path}")
+                return {"status": "success", "output_file": output_path}
+            except Exception as e:
+                log_warning(f"PDF conversion failed: {e}")
+                return {"error": f"PDF conversion failed: {str(e)}"}
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                if generated_pdf and os.path.exists(generated_pdf):
+                    try:
+                        os.unlink(generated_pdf)
+                    except Exception:
+                        pass
 
-    else:
-        log_warning(f"Unknown output format: {output_format}")
-        return {"error": f"Unknown output format: {output_format}"}
+        else:
+            log_warning(f"Unknown output format: {output_format}")
+            return {"error": f"Unknown output format: {output_format}"}
+
 
 def normalize_path(path_str):
     """Normalize a path string to handle spaces and special characters."""
