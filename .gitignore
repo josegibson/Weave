@@ -40,3 +40,6 @@ server/converted/
 *.docx
 *.xlsx
 *.pptx
+
+
+demo/

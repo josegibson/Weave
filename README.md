@@ -16,23 +16,41 @@ Weave uses a simple yet powerful placeholder syntax to identify where your data 
 
 When you provide a PowerPoint template and an Excel file, Weave reads the data from the specified sheet and cell in your Excel file and replaces the corresponding placeholder in your presentation. This allows you to quickly generate multiple presentations with different data, all based on the same template.
 
-## Architecture
+## Architectural Evolution
 
-Weave is a desktop application built with Electron. It consists of three main parts:
+Weave began as a standalone desktop application, with the backend and frontend bundled into a single installer using PyInstaller. The goal was to provide a simple, all-in-one tool for a specific client. However, as the project's potential grew, the limitations of this approach became clear.
 
-1.  **Frontend**: A React-based user interface (UI) that allows you to interact with the application.
-2.  **Backend**: A powerful Python processing engine that handles the heavy lifting of presentation generation. The backend is a Flask server that exposes a REST API.
-3.  **Main Process**: The Electron main process acts as a bridge between the frontend and the backend. It starts the Python server and facilitates communication between the UI and the processing engine.
+The project is now built on a more robust and scalable **client-server architecture**. This migration was driven by several key factors:
 
-This decoupled architecture allows for a clear separation of concerns and makes the application more robust and scalable.
+1.  **Scalability and Wider Reach:** The initial bundled approach was a bottleneck. A server-based model allows us to serve multiple users and clients without requiring them to install a complex, bundled application.
+
+2.  **Leveraging Powerful Server-Side Tools:** The migration was critically fueled by the need to use powerful, open-source tools like **LibreOffice** for document conversions. This frees the project from dependencies on closed-source software (like Microsoft PowerPoint automation) and provides more flexible processing capabilities.
+
+3.  **Enabling Advanced Features:** A server backend is the perfect foundation for building more sophisticated features, such as an in-app template editor, user account management for billing, and a centralized job processing queue.
+
+The new architecture consists of two main parts:
+
+*   **Frontend Client**: A lightweight desktop application (built with Electron and React) that provides the user interface. It is responsible for user interaction, file selection, and communicating with the server.
+*   **Backend Server**: A powerful Python server (using Flask) that exposes a REST API. It handles all the heavy lifting:
+    *   Authenticating users for metered billing via JWTs.
+    *   Receiving uploaded files.
+    *   Performing document conversions.
+    *   Weaving data from Excel into PowerPoint templates.
+    *   Serving the final, generated presentation back to the client.
+
+This decoupled architecture provides a clear separation of concerns and enhances security by centralizing all business logic.
 
 ## Technology Stack
 
 Weave is built with a modern technology stack to ensure a robust and reliable experience:
 
--   **Frontend**: React with TypeScript for a type-safe and component-based user interface.
--   **Backend**: A powerful Python processing engine that handles the heavy lifting of presentation generation.
--   **Cross-platform**: Electron to package the application for desktop use.
+-   **Frontend**: React with TypeScript.
+-   **Desktop Shell**: Electron.
+-   **Backend**: A Python server using the Flask framework.
+-   **Document Processing**:
+    -   **`python-pptx`**: For creating and manipulating PowerPoint files.
+    -   **`openpyxl`**: For reading data from Excel files.
+    -   **`LibreOffice`**: Planned for robust, open-source document conversions.
 
 ## Screenshots
 
