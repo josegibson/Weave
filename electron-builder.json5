@@ -23,7 +23,7 @@
       "dmg"
     ],
     "artifactName": "${productName}-Mac-Installer.${ext}",
-    "icon": "public/weave.svg"
+    "icon": "react-app/public/weave.svg"
   },
   "win": {
     "target": [
@@ -35,7 +35,7 @@
       }
     ],
     "artifactName": "${productName}-Windows-Setup.${ext}",
-    "icon": "public/favicon.ico"
+    "icon": "react-app/public/favicon.ico"
   },
   "nsis": {
     "oneClick": false,
@@ -45,14 +45,14 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "Weave",
-    "installerIcon": "public/favicon.ico",
-    "uninstallerIcon": "public/favicon.ico"
+    "installerIcon": "react-app/public/favicon.ico",
+    "uninstallerIcon": "react-app/public/favicon.ico"
   },
   "linux": {
     "target": [
       "AppImage"
     ],
     "artifactName": "${productName}-Linux.${ext}",
-    "icon": "public/weave.svg"
+    "icon": "react-app/public/weave.svg"
   }
 }

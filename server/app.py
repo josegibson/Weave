@@ -38,47 +38,8 @@ def allowed_file(filename):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    # Check which converters are available
-    converter_status = {}
-    
-    try:
-        from converters import UnoApiConverter
-        converter_status['uno_api'] = UnoApiConverter.is_available()
-    except ImportError:
-        converter_status['uno_api'] = False
-    
-    try:
-        from converters import UnoconvConverter
-        converter_status['unoconv'] = UnoconvConverter.is_available()
-    except ImportError:
-        converter_status['unoconv'] = False
-    
-    try:
-        from converters import LibreOfficeConverter
-        converter_status['libreoffice'] = LibreOfficeConverter.is_available()
-    except ImportError:
-        converter_status['libreoffice'] = False
-    
-    try:
-        import comtypes.client
-        converter_status['powerpoint'] = platform.system() == 'Windows'
-    except ImportError:
-        converter_status['powerpoint'] = False
-    
-    # Check processing engine dependencies
-    processing_engine_available = True
-    try:
-        import openpyxl
-        import pptx
-    except ImportError:
-        processing_engine_available = False
-    
-    return jsonify({
-        'status': 'ok', 
-        'platform': platform.system(),
-        'converters': converter_status,
-        'processing_engine_available': processing_engine_available
-    })
+    """A simple health check endpoint."""
+    return jsonify({'status': 'ok'})
 
 @app.route('/api/analyse-template', methods=['POST'])
 def analyse_template():

@@ -3,14 +3,14 @@
   "private": true,
   "version": "0.0.1",
   "description": "Weave: Report automation tool",
-  "author": "Your Name <you@example.com>",
+  "author": "Jose Gibson <josegibson7@gmail.com>",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --config react-app/vite.config.ts",
     "prebuild": "cd electron/core && pyinstaller --onefile processing_engine.py",
-    "build": "npm run prebuild && tsc && vite build && electron-builder --config electron-builder.json5 --config.productName=Weave --config.extraMetadata.productName=Weave",
+    "build": "npm run prebuild && tsc -p react-app/tsconfig.json && vite build --config react-app/vite.config.ts && electron-builder --config electron-builder.json5 --config.productName=Weave --config.extraMetadata.productName=Weave",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview --config react-app/vite.config.ts"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
